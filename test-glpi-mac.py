@@ -53,7 +53,7 @@ def install_glpi_mac() :
                 text = True
             )
             print(f"Commande exécutée avec succès : {cmd}")
-    print("✅ Installation terminée avec succès.")
+        print("✅ Installation terminée avec succès.")
     except subprocess.CalledProcessError as e :
         print(f"Erreur lors de l'installation : {e}")
 

@@ -4,7 +4,7 @@ import subprocess
 
 server="https://micronov.fr36.glpi-network.cloud"
 agent_mac="https://github.com/glpi-project/glpi-agent/releases/download/1.17/GLPI-Agent-1.17_x86_64.pkg"
-
+path_desktop = Path=os.path.join(os.path.expanduser("~"), "Desktop")
 path_config = "/Applications/GLPI-Agent/etc/conf.d/glpi.cfg"
 tag = input("Tag : ")
 
@@ -16,9 +16,9 @@ tag={tag}
 
 def install_glpi_mac() : 
     command_install =[
-        "cd Desktop",
+        f"cd {path_desktop}",
         f"curl -L -O {agent_mac}"
-        f"sudo installer -verbose -pkg $HOME/Desktop/{os.path.basename(agent_mac)} -target /Applications"
+        f"sudo installer -verbose -pkg {path_desktop}/{os.path.basename(agent_mac)} -target /Applications"
     ]
         
     try : 

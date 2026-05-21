@@ -35,6 +35,7 @@ def install_glpi_mac() :
 
     except subprocess.CalledProcessError as e :
         print(f"Erreur lors de l'installation : {e}")
+        return
     os.makedirs(os.path.dirname(path_config), exist_ok=True)
     with open(path_config, "w") as config_file :
         config_file.write(fichier_config)
@@ -57,6 +58,7 @@ def install_glpi_mac() :
         print("✅ Installation terminée avec succès.")
     except subprocess.CalledProcessError as e :
         print(f"Erreur lors de l'installation : {e}")
+        return
 
     return
 

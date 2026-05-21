@@ -15,11 +15,12 @@ tag={tag}
 """
 
 def install_glpi_mac() : 
-    command_install = [
+    command_install =[
         "cd Desktop",
         f"curl -L -O {agent_mac}"
-        f"sudo installer -verbose -pkg $HOME/Desktop/{} -target /Applications"
+        f"sudo installer -verbose -pkg $HOME/Desktop/{os.path.basename(agent_mac)} -target /Applications"
     ]
+        
     try : 
         for cmd in command_install : 
             subprocess.run(

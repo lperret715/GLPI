@@ -1,0 +1,1 @@
+Erreur lors de l'installation : Command 'curl -L -O https://github.com/glpi-project/glpi-agent/releases/download/1.17/GLPI-Agent-1.17_x86_64.pkgsudo installer -verbose -pkg /Users/micronov/Desktop/GLPI-Agent-1.17_x86_64.pkg -target /Applications' returned non-zero exit status 3.

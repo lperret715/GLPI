@@ -15,10 +15,10 @@ tag={tag}
 """
 
 def install_glpi_mac() : 
-    command_install = f"cd {path_desktop} && curl -L -O {agent_mac} && sudo installer -verbose -pkg {path_desktop}/{os.path.basename(agent_mac)} -target /Applications"
+    command_install = f"cd {path_desktop} && curl -L -O {agent_mac} && installer -verbose -pkg {path_desktop}/{os.path.basename(agent_mac)} -target /Applications"
     command_start = [
-        "sudo launchctl start org.glpi-project.glpi-agent",
-        "sudo /Applications/GLPI-Agent/bin/glpi-agent"
+        "launchctl start org.glpi-project.glpi-agent",
+        "/Applications/GLPI-Agent/bin/glpi-agent"
     ]      
     try : 
         subprocess.run(

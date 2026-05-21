@@ -16,7 +16,7 @@ tag={tag}
 
 def install_glpi_mac() : 
     command_install = f"cd {path_desktop} && curl -L -O {agent_mac} && sudo installer -verbose -pkg {path_desktop}/{os.path.basename(agent_mac)} -target /Applications"
-
+    command_start = f"sudo launchctl start org.glpi-project.glpi-agent && sudo /Applications/GLPI-Agent/bin/glpi-agent"
         
     try : 
         subprocess.run(
@@ -36,7 +36,7 @@ def install_glpi_mac() :
     with open(path_config, "w") as config_file :
         config_file.write(fichier_config)
     print(f"Fichier créé : {path_config}")
-    command_start = "sudo launchctl start org.glpi-project.glpi-agent && sudo /Applications/GLPI-Agent/bin/glpi-agent"
+    
 
     try : 
         subprocess.run(

@@ -15,23 +15,19 @@ tag={tag}
 """
 
 def install_glpi_mac() : 
-    command_install =[
-        f"cd {path_desktop}",
-        f"curl -L -O {agent_mac}"
-        f"sudo installer -verbose -pkg {path_desktop}/{os.path.basename(agent_mac)} -target /Applications"
-    ]
+    command_install = f"cd {path_desktop} && curl -L -O {agent_mac} && sudo installer -verbose -pkg {path_desktop}/{os.path.basename(agent_mac)} -target /Applications"
+
         
     try : 
-        for cmd in command_install : 
-            subprocess.run(
-                cmd,
-                check = True,
-                shell = True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text = True
+        subprocess.run(
+            command_install,
+            check = True,
+            shell = True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text = True
             )
-            print(f"Commande exécutée avec succès : {cmd}")
+        print(f"Commande exécutée avec succès : {command_install}")
 
     except subprocess.CalledProcessError as e :
         print(f"Erreur lors de l'installation : {e}")
@@ -40,21 +36,18 @@ def install_glpi_mac() :
     with open(path_config, "w") as config_file :
         config_file.write(fichier_config)
     print(f"Fichier créé : {path_config}")
-    command_start = [
-        "sudo launchctl startorg.glpi-project.glpi-agent"
-        "sudo /Applications/GLPI-Agent/bin/glpi-agent"
-    ]
+    command_start = "sudo launchctl start org.glpi-project.glpi-agent && sudo /Applications/GLPI-Agent/bin/glpi-agent"
+
     try : 
-        for cmd in command_start : 
-            subprocess.run(
-                cmd,
-                check = True,
-                shell = True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text = True
+        subprocess.run(
+            command_start,
+            check = True,
+            shell = True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text = True
             )
-            print(f"Commande exécutée avec succès : {cmd}")
+        print(f"Commande exécutée avec succès : {command_start}")
         print("✅ Installation terminée avec succès.")
     except subprocess.CalledProcessError as e :
         print(f"Erreur lors de l'installation : {e}")

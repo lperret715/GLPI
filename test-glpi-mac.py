@@ -16,8 +16,10 @@ tag={tag}
 
 def install_glpi_mac() : 
     command_install = f"cd {path_desktop} && curl -L -O {agent_mac} && sudo installer -verbose -pkg {path_desktop}/{os.path.basename(agent_mac)} -target /Applications"
-    command_start = f"sudo launchctl start org.glpi-project.glpi-agent && /Applications/GLPI-Agent/bin/glpi-agent"
-        
+    command_start = [
+        "sudo launchctl start org.glpi-project.glpi-agent",
+        "sudo /Applications/GLPI-Agent/bin/glpi-agent"
+    ]      
     try : 
         subprocess.run(
             command_install,
@@ -39,15 +41,16 @@ def install_glpi_mac() :
     
 
     try : 
-        subprocess.run(
-            command_start,
-            check = True,
-            shell = True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text = True
+        for cmd in command_start : 
+            subprocess.run(
+                cmd,
+                check = True,
+                shell = True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text = True
             )
-        print(f"Commande exécutée avec succès : {command_start}")
+            print(f"Commande exécutée avec succès : {cmd}")
         print("✅ Installation terminée avec succès.")
     except subprocess.CalledProcessError as e :
         print(f"Erreur lors de l'installation : {e}")

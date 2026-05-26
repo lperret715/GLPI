@@ -1,55 +1,6 @@
-    main()
-  File "test-glpi-mac.py", line 62, in main
-    install_glpi_mac()
-  File "test-glpi-mac.py", line 36, in install_glpi_mac
+Last login: Tue May 26 11:02:36 on ttys001
+/Users/micronov/Documents/GLPI/Tests/Mac/test-mac ; exit;
+micronov@iMac-de-micronov ~ % /Users/micronov/Documents/GLPI/Tests/Mac/test-mac ; exit;
+[PYI-826:ERROR] Failed to load Python shared library '/Users/micronov/Documents/GLPI/Tests/Mac/_internal/Python3': dlopen(/Users/micronov/Documents/GLPI/Tests/Mac/_internal/Python3, 10): image not found
 
-
-
-    main()
-  File "test-glpi-mac.py", line 62, in main
-    install_glpi_mac()
-  File "test-glpi-mac.py", line 36, in install_glpi_mac
-
-
-
-Defaulting to user installation because normal site-packages is not writeable
-Collecting pyinstaller
-  Using cached pyinstaller-4.1.tar.gz (3.5 MB)
-  Installing build dependencies ... done
-  Getting requirements to build wheel ... error
-  ERROR: Command errored out with exit status 1:
-   command: /System/Library/Frameworks/Python.framework/Versions/2.7/Resources/Python.app/Contents/MacOS/Python /Library/Python/2.7/site-packages/pip/_vendor/pep517/_in_process.py get_requires_for_build_wheel /var/folders/7p/c1w5b1v57t34qqmrvw7mc6fh0000gn/T/tmpdSt4eV
-       cwd: /private/var/folders/7p/c1w5b1v57t34qqmrvw7mc6fh0000gn/T/pip-install-WqWPcA/pyinstaller
-  Complete output (19 lines):
-  Traceback (most recent call last):
-    File "/Library/Python/2.7/site-packages/pip/_vendor/pep517/_in_process.py", line 280, in <module>
-      main()
-    File "/Library/Python/2.7/site-packages/pip/_vendor/pep517/_in_process.py", line 263, in main
-      json_out['return_val'] = hook(**hook_input['kwargs'])
-    File "/Library/Python/2.7/site-packages/pip/_vendor/pep517/_in_process.py", line 114, in get_requires_for_build_wheel
-      return hook(config_settings)
-    File "/private/var/folders/7p/c1w5b1v57t34qqmrvw7mc6fh0000gn/T/pip-build-env-VOc2hd/overlay/lib/python2.7/site-packages/setuptools/build_meta.py", line 146, in get_requires_for_build_wheel
-      return self._get_build_requires(config_settings, requirements=['wheel'])
-    File "/private/var/folders/7p/c1w5b1v57t34qqmrvw7mc6fh0000gn/T/pip-build-env-VOc2hd/overlay/lib/python2.7/site-packages/setuptools/build_meta.py", line 127, in _get_build_requires
-      self.run_setup()
-    File "/private/var/folders/7p/c1w5b1v57t34qqmrvw7mc6fh0000gn/T/pip-build-env-VOc2hd/overlay/lib/python2.7/site-packages/setuptools/build_meta.py", line 243, in run_setup
-      self).run_setup(setup_script=setup_script)
-    File "/private/var/folders/7p/c1w5b1v57t34qqmrvw7mc6fh0000gn/T/pip-build-env-VOc2hd/overlay/lib/python2.7/site-packages/setuptools/build_meta.py", line 142, in run_setup
-      exec(compile(code, __file__, 'exec'), locals())
-    File "setup.py", line 63
-      file=sys.stderr)
-          ^
-  SyntaxError: invalid syntax
-  ----------------------------------------
-ERROR: Command errored out with exit status 1: /System/Library/Frameworks/Python.framework/Versions/2.7/Resources/Python.app/Contents/MacOS/Python /Library/Python/2.7/site-packages/pip/_vendor/pep517/_in_process.py get_requires_for_build_wheel /var/folders/7p/c1w5b1v57t34qqmrvw7mc6fh0000gn/T/tmpdSt4eV Check the logs for full command output.chctl start org.glpi-project.glpi-agent && sudo /Applications/GLPI-Agent/bin/glpi-agent' returned non-zero exit status 3.Système détecté : Mac 
- Démarrage de l'installation Mac
-Password:
-
-Commande exécutée avec succès : cd /Users/micronov/Desktop && curl -L -O https://github.com/glpi-project/glpi-agent/releases/download/1.17/GLPI-Agent-1.17_x86_64.pkg && sudo installer -verbose -pkg /Users/micronov/Desktop/GLPI-Agent-1.17_x86_64.pkg -target /Applications
-Traceback (most recent call last):
-  File "test-glpi-mac.py", line 67, in <module>
-    main()
-  File "test-glpi-mac.py", line 62, in main
-    install_glpi_mac()
-  File "test-glpi-mac.py", line 36, in install_glpi_mac
-
+[Opération terminée]

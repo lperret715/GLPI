@@ -1,0 +1,6 @@
+Last login: Tue May 26 10:55:05 on ttys001
+/Users/micronov/Documents/GLPI/Tests/Mac/test-mac ; exit;
+micronov@iMac-de-micronov ~ % /Users/micronov/Documents/GLPI/Tests/Mac/test-mac ; exit;
+[PYI-643:ERROR] Failed to load Python shared library '/Users/micronov/Documents/GLPI/Tests/Mac/_internal/Python3': dlopen(/Users/micronov/Documents/GLPI/Tests/Mac/_internal/Python3, 10): image not found
+
+[Opération terminée]

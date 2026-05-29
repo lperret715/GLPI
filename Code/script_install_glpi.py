@@ -1,136 +1,204 @@
 import os
 import platform
 import subprocess
-import requests
+import sys
+from pathlib import Path
 
-server = "https://micronov.fr36.glpi-network.cloud"
-monitor="https://github.com/glpi-project/glpi-agentmonitor/releases/download/1.5.0/GLPI-AgentMonitor-x64.exe"
-agent_windows="https://github.com/glpi-project/glpi-agent/releases/download/1.17/GLPI-Agent-1.17-x64.msi"
-agent_mac="https://github.com/glpi-project/glpi-agent/releases/download/1.17/GLPI-Agent-1.17_x86_64.pkg"
-agent_linux="https://github.com/glpi-project/glpi-agent/releases/download/1.17/glpi-agent-1.17-linux-installer.pl"
-Path=os.path.join(os.path.expanduser("~"), "Desktop", "GLPI-Agent.msi")
-Monitor_Path=os.path.join(os.path.expanduser("~"), "Desktop", "GLPI-Agent-Monitor.exe")
-debug =1
-tag = input ("Tag : ")
+
+
+# ---------------- LIENS --------------------------------------------------------------------------------------------------
+SERVER = "https://micronov.fr36.glpi-network.cloud"
+MONITOR="https://github.com/glpi-project/glpi-agentmonitor/releases/download/1.5.0/GLPI-AgentMonitor-x64.exe"
+AGENT_WINDOWS="https://github.com/glpi-project/glpi-agent/releases/download/1.17/GLPI-Agent-1.17-x64.msi"
+AGENT_MAC="https://github.com/glpi-project/glpi-agent/releases/download/1.17/GLPI-Agent-1.17_x86_64.pkg"
+AGENT_LINUX="https://github.com/glpi-project/glpi-agent/releases/download/1.17/glpi-agent-1.17-linux-installer.pl"
+
+
+#---------------- CONSTANTES -------------------------------------
+DEBUG = True
+
+# ---------------- CHEMINS -------------------------------------------------------------------------------------------------
+DESKTOP = Path.home() / "Desktop"
+AGENT_PATH= DESKTOP / "GLPI-Agent.msi"
+MONITOR_PATH= DESKTOP / "GLPI-Agent-Monitor.exe"
+
+#---------------- NOMS PACKAGES --------------------------------------------------------------------------------
+WINGET_AGENT_NAME = "GLPI-Project.GLPI-Agent"
+WINGET_MONITOR_NAME = "GLPI Agent Monitor"
+
+
+def log(message,error) :
+    prefix = "❌ [ERREUR]" if error else "✅ [INFO]"
+    print(f"{prefix} {message}")
 
 
 #Regarder si winget existe
 def is_winget_installed():
     try:
-        subprocess.run(["winget", "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(
+            ["winget", "--version"], 
+            check=True, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE,
+            )
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
 
 #Regarder si l'agent existe déjà
-def is_glpi_installed():
+def is_package_installed(package_name):
     try:
-        res = subprocess.run(["winget", "list"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        return "GLPI Agent" in res.stdout
+        res = subprocess.run(
+            ["winget", "list", "--id", package_name], 
+            check=True, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            text=True
+            )
+        return package_name in res.stdout
     except Exception:
         return False
 
+
+#def install_winget() : 
+
 #Désinstaller l'agent s'il existe (UNIQUEMENT POUR TESTS, A NE PAS CONSERVER DANS LE CODE FINAL)
-def uninstall_glpi_windows():
-    if not is_glpi_installed():
-        print("GLPI Agent n'est pas installé.")
+def uninstall_package(package_name):
+    if not is_package_installed(package_name):
+        log(f"{package_name} n'est pas installé.", False)
+        return True
+    
+    response = input (f"Voulez-vous désinstaller {package_name} ? (o/n) : ").strip().lower()
+    if response != "o" : 
+        log(f"Désinstallation de {package_name} annulée.", False)
         return True
 
     try:
         # Utilise une liste pour éviter les problèmes de guillemets
         cmd = [
-            "winget", "uninstall", "GLPI Agent",
+            "winget", "uninstall", package_name,
             "-e", "--accept-source-agreements"
         ]
-        subprocess.run(cmd, check=True, shell=True)
-        print("✅ GLPI Agent désinstallé avec succès.")
+        subprocess.run(
+            cmd, 
+            check=True,
+            )
+        log(f"{package_name} désinstallé avec succès.", False)
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ Erreur pendant la désinstallation : {e}")
+        log(f"Erreur pendant la désinstallation de {package_name} : {e}", True)
+        return False
+
+def download_file(url, destination) : 
+    try :
+        command = [
+            "powershell.exe",
+            "-Command",
+            f"Invoke-WebRequest -Uri '{url}' -Outfile '{destination}' -UseBasicParsing"    
+        ]
+        subprocess.run(
+            command,
+            check = True, 
+            stdout = subprocess.PIPE if not DEBUG else None
+        )
+        log (f"Fichier téléchargé : {destination.name}", False)
+        return True
+    except subprocess.CalledProcessError as e :
+        log (f"Echec du téléchargement de {url} : {e}", True)
         return False
 
 
 
-#Installation Windows
-def install_glpi_windows() :
-    if not uninstall_glpi_windows(): 
-        print("Impossible de désinstaller l'agent existant, installation annulée")
-        return
-    
-    # Si winget non installé, on passe par la voie longue
-    if not is_winget_installed():
-        print("winget n'est pas installé. Installation classique (plus long)")
-
-
+def install_msi(msi_path, server, tag) : 
+    try : 
         command = [
-            f"Invoke-WebRequest -Uri {agent_windows} -Outfile {Path}",
-            f"Start-Process msiexec.exe -ArgumentList '/i \"{Path}\" /qb SERVER={server} TAG={tag} RUNNOW=1' -Wait"
-           
+            "msiexec.exe",
+            "/i", str(msi_path),
+            f"/qb SERVER={server} TAG={tag} RUNNOW=1",
         ]
-        try:
-            for cmd in command :
-                subprocess.run(
-            ["powershell.exe", "-Command", cmd],
-            check=True,
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-            )
-            print(f"✅ Commande exécutée : {cmd}")
-            print("✅ Installation terminée avec succès.")
-            os.remove(Path)
-        except subprocess.CalledProcessError as e:
-            print(f"❌ Erreur pendant l'installation : {e}")
-
-        return
-
+        subprocess.run(
+            command,
+            check = True
+        ) 
+        log(f"Installation de {msi_path} terminée.", False)
+        return True
+    except subprocess.CalledProcessError as e :
+        log(f"Echec de l'installation de {msi_path} : {e}", True)
+        return False
     
-    commands = [
-        f'winget install glpi-agent --custom="SERVER={server} TAG={tag} RUNNOW=1"'
-    ]
+
+def install_with_winget(package_name, custom_args) : 
+    try : 
+        command = [
+            "winget", "install",
+            package_name,
+            "--custom", custom_args,
+            "--accept-source-agreements",
+            "--accept-package-agreements",
+        ]
+        subprocess.run(
+            command,
+            check = True,  
+        )
+        log(f"{package_name} installé avec succès", False)
+        return True
+    except subprocess.CalledProcessError as e : 
+        log(f"Erreur lors de l'installation de {package_name} : {e}", True)
+        return False
+
+#Installation Windows
+def install_glpi_windows(tag) :
+    if not uninstall_package(WINGET_AGENT_NAME) : 
+        return False
+    if is_winget_installed() : 
+        custom_args = f"SERVER={SERVER} TAG={tag} RUNNOW=1"
+        return install_with_winget(WINGET_AGENT_NAME, custom_args)
+    
+    try : 
+        if not download_file(AGENT_WINDOWS, AGENT_PATH) :
+            return False
+        if not install_msi(AGENT_PATH, SERVER, tag) :
+            return False
+    finally : 
+        if AGENT_PATH.exists() : 
+            AGENT_PATH.unlink()
+    return True
         
 
-    for cmd in commands:
-        try:
-            subprocess.run(cmd, shell=True, check=True)
-            print("✅ GLPI Agent installé avec succès.")
-        except subprocess.CalledProcessError as e:
-            print(f"❌ Erreur pendant l'installation de GLPI Agent : {e}")
-        
-
-def install_glpi_agentmonitor():
-    commands = [
-        f'Invoke-WebRequest -Uri {monitor} -Outfile {Monitor_Path}'
-    ]
+def install_glpi_monitor():
+    if not uninstall_package(WINGET_MONITOR_NAME) : 
+        return False
     
-    try:
-        for cmd in commands :
-            subprocess.run(
-                ["powershell.exe", "-Command", cmd],
-                check=True,
-                shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-                )
-            print(f"✅ Commande exécutée : {cmd}")
-            print("✅ Installation terminée avec succès.")
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Erreur pendant l'installation de GLPI Agent-Monitor : {e}")
+
+    try :
+        if not download_file(MONITOR, MONITOR_PATH) : 
+            return False
+    except Exception : 
+        return False
 
 
 def main():
+    tag = input ("Tag : ")
+    if not tag : 
+        log("Le tag ne peut pas être vide.", True)
+        sys.exit(1)
     system = platform.system()
     # if system == "Linux":
     #     install_glpi_linux()
     # elif system == "Darwin":
     #     install_glpi_macos()
     if system == "Windows":
-       install_glpi_windows()
-       install_glpi_agentmonitor()
+        if not install_glpi_windows(tag) : 
+           sys.exit(1)
+        if not install_glpi_monitor() :
+           sys.exit(1)
     else:
         print(f"OS non supporté : {system}")
 
 if __name__ == "__main__":
     main()
+
+
+
+
+

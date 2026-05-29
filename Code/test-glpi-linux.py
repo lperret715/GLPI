@@ -52,7 +52,7 @@ def install_dependencies() :
             check = True,
             stdout = subprocess.PIPE if not DEBUG else None,
         )
-        log("Dépendances installées avec succès")
+        log("Dépendances installées avec succès", False)
         return True
     except subprocess.CalledProcessError as e : 
         log(f"Echec de l'installation des dépendances : {e}", True)
@@ -61,7 +61,7 @@ def install_dependencies() :
 def download_agent() : 
     try : 
         urllib.request.urlretrieve(AGENT_LINUX_URL, AGENT_SCRIPT)
-        log(f"Script téléchargé : {AGENT_SCRIPT}")
+        log(f"Script téléchargé : {AGENT_SCRIPT}", False)
         return True
     except Exception as e :
         log(f"Echec du téléchargement : {e}", True)
@@ -81,7 +81,7 @@ def run_agent_install(server, tag) :
         cmd.append("--debug")
     try : 
         subprocess.run(cmd, check = True)
-        log("GLPI Agent installé avec succès.")
+        log("GLPI Agent installé avec succès.", False)
         return True 
     except subprocess.CalledProcessError as e :
         log(f"Echec de l'installation : {e}", True)
@@ -90,7 +90,7 @@ def run_agent_install(server, tag) :
 def cleanup() :
     if os.path.exists(AGENT_SCRIPT) : 
         os.remove(AGENT_SCRIPT)
-        log(f"Fichier temporaire supprimé : {AGENT_SCRIPT}")
+        log(f"Fichier temporaire supprimé : {AGENT_SCRIPT}", False)
 
 
 def get_linux_distro() :
@@ -109,7 +109,7 @@ def install_glpi_linux(server, tag) :
         log(f"Distribution non supportée : {distro}. \n Voire les solutions possibles : {DOCUMENTATION}", True)
         sys.exit(1) 
     if not check_dependencies() : 
-        log("Installation des dépendances...")
+        log("Installation des dépendances...", False)
         if not install_dependencies() : 
             sys.exit(1)
     if not download_agent() : 

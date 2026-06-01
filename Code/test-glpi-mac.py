@@ -1,8 +1,7 @@
 import os
 import platform
 import subprocess
-import sys 
-import tempfile
+import sys
 import urllib.request
 from pathlib import Path
 
@@ -15,17 +14,14 @@ DEBUG = True
 AGENT_PKG_PATH = Path("/Applications") / "GLPI-Agent.pkg"
 CONFIG_DIR = Path("/Applications/GLPI-Agent/etc/conf.d")
 CONFIG_PATH = CONFIG_DIR / "glpi.cfg"
+AGENT_PATH = Path("/Applications/GLPI-Agent/bin/glpi-agent")
+AGENT_NAME = "com.teclib.glpi-agent"
 
 
 MISSING_DEPS = []
 REQUIRED_DEPS = ["curl", "installer"]
-# tag = input("Tag : ")
 
-# fichier_config = f"""
-# server = {SERVER}
-# debug=1
-# tag = {tag}
-# """
+
 
 
 
@@ -79,48 +75,97 @@ def download_file(url, destination) :
         log(f"Echec du téléchargement : {e}", True)
         return False
 
-
-
-
-
-
-
-
-#command_mac = f"cd {PATH_DESKTOP} && curl -L -O {AGENT_MAC} && sudo installer -verbose -pkg {PATH_DESKTOP}/{os.path.basename(AGENT_MAC)} -target /Applications && sudo cp {tmp_path} {PATH_CONFIG} && sudo launchctl start com.teclib.glpi-agent && sudo /Applications/GLPI-Agent/bin/glpi-agent"   
-
-def install_glpi_mac() : 
-    if not check_dependencies() :
-        log("Installation des dépendances...", False)
-        if not install_dependencies() :
-            sys.exit(1)
-    if not download_file(AGENT_MAC, AGENT_PKG_PATH) :
-        sys.exit(1)
+def install_package(pkg) :
+    cmd = [
+        "sudo", "installer",
+        "-verbose",
+        "-pkg", pkg,
+        "-target", pkg.parent
+    ]
+    try :
+        subprocess.run(
+            cmd, 
+            check = True,
+        )
+        log("GLPI Agent installé avec succès", False)
+        return True
+    except subprocess.CalledProcessError as e :
+        log(f"Erreur pendant l'installation : {e}", True)
+        return False
     
-    
-    
-    
-    # with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.cfg') as tmp:
-    #     tmp.write(fichier_config)
-    #     tmp_path = tmp.name
-    
-    
-    # try : 
-    #     subprocess.run(
-    #         command_mac,
-    #         check = True,
-    #         shell = True,
-    #         stdout=subprocess.PIPE,
-    #         stderr=subprocess.PIPE,
-    #         text = True
-    #         )
-    #     os.unlink(tmp_path)
-    #     print(f"Commande exécutée avec succès : {command_mac}")
-    #     print("✅ Installation terminée avec succès.")
-    # except subprocess.CalledProcessError as e :
-    #     print(f"Erreur lors de l'installation : {e}")
-    #     return
 
-    # return
+
+
+def create_config(path, server, tag) :
+    try :
+        fichier_config = f"""
+server = {server}
+debug=1
+tag = {tag}
+"""
+        with open(path, "w") as f :
+            f.write(fichier_config)
+        log(f"Fichier de configuration créé avec succès", False)
+        return True
+    except Exception as e :
+        log(f"Erreur lors de la création du fichier de configuration : {e}", True)
+        return False
+
+
+def start_process(process) :
+    cmd = [
+        "sudo", "launchctl",
+        "start", process
+    ]
+    try : 
+        subprocess.run(cmd, check = True)
+        log(f"{process} démarré avec succès", False)
+        return True
+    except subprocess.CalledProcessError as e :
+        log(f"{process} n'a pas pu être démarré : {e}", True)
+        return False
+    
+def agent_run(agent) :
+    cmd = ["sudo", agent]
+    try :
+        subprocess.run(cmd, check = True)
+        log(f"{agent} démarré avec succès", False)
+        return True
+    except subprocess.CalledProcessError as e :
+        log(f"{agent} n'a pas pu être démarré : {e}", True)
+        return False
+    
+
+
+
+
+
+
+
+
+
+# command_mac = f"cd {PATH_DESKTOP} && curl -L -O {AGENT_MAC} && sudo installer -verbose -pkg {PATH_DESKTOP}/{os.path.basename(AGENT_MAC)} -target /Applications && sudo cp {tmp_path} {PATH_CONFIG} && sudo launchctl start com.teclib.glpi-agent && sudo /Applications/GLPI-Agent/bin/glpi-agent"   
+
+def install_glpi_mac(tag) : 
+    try : 
+        if not check_dependencies() :
+            log("Installation des dépendances...", False)
+            if not install_dependencies() :
+                return False
+        if not download_file(AGENT_MAC, AGENT_PKG_PATH) :
+            return False
+        if not install_package(AGENT_PKG_PATH) :
+            return False
+        if not create_config(CONFIG_PATH, SERVER, tag) :
+            return False
+        if not start_process(AGENT_NAME) :
+            return False
+        if not agent_run(AGENT_PATH) :
+            return False
+    finally : 
+        if AGENT_PKG_PATH.exists() : 
+            AGENT_PKG_PATH.unlink()
+    return True
 
 
 def main():
@@ -131,7 +176,8 @@ def main():
     system=platform.system()
     if system == "Darwin" :
         print("Système détecté : Mac \n Démarrage de l'installation Mac")
-        install_glpi_mac()
+        if not install_glpi_mac(tag) :
+            sys.exit(1)
     else : 
         print(f"OS non supporté : {system}")
         sys.exit(1)

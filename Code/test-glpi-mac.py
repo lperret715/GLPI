@@ -86,7 +86,7 @@ def download_file(url, destination) :
 
 
 
-command_mac = f"cd {PATH_DESKTOP} && curl -L -O {AGENT_MAC} && sudo installer -verbose -pkg {PATH_DESKTOP}/{os.path.basename(AGENT_MAC)} -target /Applications && sudo cp {tmp_path} {PATH_CONFIG} && sudo launchctl start com.teclib.glpi-agent && sudo /Applications/GLPI-Agent/bin/glpi-agent"   
+#command_mac = f"cd {PATH_DESKTOP} && curl -L -O {AGENT_MAC} && sudo installer -verbose -pkg {PATH_DESKTOP}/{os.path.basename(AGENT_MAC)} -target /Applications && sudo cp {tmp_path} {PATH_CONFIG} && sudo launchctl start com.teclib.glpi-agent && sudo /Applications/GLPI-Agent/bin/glpi-agent"   
 
 def install_glpi_mac() : 
     if not check_dependencies() :

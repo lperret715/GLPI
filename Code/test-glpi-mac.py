@@ -4,6 +4,7 @@ import subprocess
 import sys
 import urllib.request
 from pathlib import Path
+import tempfile
 
 SERVER="https://micronov.fr36.glpi-network.cloud"
 AGENT_MAC="https://github.com/glpi-project/glpi-agent/releases/download/1.17/GLPI-Agent-1.17_x86_64.pkg"
@@ -103,12 +104,21 @@ server = {server}
 debug=1
 tag = {tag}
 """
-        with open(path, "w") as f :
-            f.write(fichier_config)
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.cfg', delete = False) as tmp_file :
+            tmp_file.write(fichier_config)
+            tmp_path = Path(tmp_file.name)
+        cmd = [
+            "sudo",
+            "cp", tmp_path, path
+        ]
+        subprocess.run(cmd, check = True)
         log(f"Fichier de configuration créé avec succès", False)
+        tmp_path.unlink()
         return True
     except Exception as e :
         log(f"Erreur lors de la création du fichier de configuration : {e}", True)
+        if tmp_path.exists() :
+            tmp_path.unlink()
         return False
 
 

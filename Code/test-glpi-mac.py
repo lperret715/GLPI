@@ -1,19 +1,55 @@
 import os
 import platform
 import subprocess
+import sys 
 import tempfile
+from pathlib import Path
 
-server="https://micronov.fr36.glpi-network.cloud"
-agent_mac="https://github.com/glpi-project/glpi-agent/releases/download/1.17/GLPI-Agent-1.17_x86_64.pkg"
-path_desktop = os.path.join(os.path.expanduser("~"), "Desktop")
-path_config = "/Applications/GLPI-Agent/etc/conf.d/glpi.cfg"
-tag = input("Tag : ")
+SERVER="https://micronov.fr36.glpi-network.cloud"
+AGENT_MAC="https://github.com/glpi-project/glpi-agent/releases/download/1.17/GLPI-Agent-1.17_x86_64.pkg"
+DEBUG = True
 
-fichier_config = f"""
-server = {server}
-debug=1
-tag={tag}
-"""
+
+
+PATH_DESKTOP = Path.home() / "Desktop"
+AGENT_PKG_PATH = DESKTOP_PATH / "GLPI-Agent.pkg"
+CONFIG_DIR = Path("/Applications/GLPI-Agent/etc/conf.d")
+CONFIG_PATH = CONFIG_DIR / "glpi.cfg"
+
+
+MISSING_DEPS = []
+REQUIRED_DEPS = ["curl", "installer"]
+# tag = input("Tag : ")
+
+# fichier_config = f"""
+# server = {SERVER}
+# debug=1
+# tag = {tag}
+# """
+
+
+
+def log(message,error) :
+    prefix = "❌ [ERREUR]" if error else "✅ [INFO]"
+    print(f"{prefix} {message}")
+
+def check_dependencies() : 
+    MISSING_DEPS = []
+    for dep in REQUIRED_DEPS :
+        try :
+            subprocess.run(
+                ["which", dep],
+                check = True,
+                stdout = subprocess.DEVNULL,
+                stderr = subprocess.DEVNULL,
+            )
+        except subprocess.CalledProcessError :
+            MISSING_DEPS.append(dep)
+    if MISSING_DEPS :
+        log(f"Dépendances manquantes : {','.join(MISSING_DEPS)}", True)
+        return False
+    return True
+        
 
 def install_glpi_mac() : 
     
@@ -21,7 +57,7 @@ def install_glpi_mac() :
         tmp.write(fichier_config)
         tmp_path = tmp.name
     
-    command_mac = f"cd {path_desktop} && curl -L -O {agent_mac} && sudo installer -verbose -pkg {path_desktop}/{os.path.basename(agent_mac)} -target /Applications && sudo cp {tmp_path} {path_config} && sudo launchctl start com.teclib.glpi-agent && sudo /Applications/GLPI-Agent/bin/glpi-agent"   
+    command_mac = f"cd {PATH_DESKTOP} && curl -L -O {AGENT_MAC} && sudo installer -verbose -pkg {PATH_DESKTOP}/{os.path.basename(AGENT_MAC)} -target /Applications && sudo cp {tmp_path} {PATH_CONFIG} && sudo launchctl start com.teclib.glpi-agent && sudo /Applications/GLPI-Agent/bin/glpi-agent"   
     try : 
         subprocess.run(
             command_mac,

@@ -1,0 +1,3 @@
+installer: The upgrade was successful.
+✅ [INFO] GLPI Agent installé avec succès
+❌ [ERREUR] Erreur lors de la création du fichier de configuration : [Errno 13] Permission denied: '/Applications/GLPI-Agent/etc/conf.d/glpi.cfg'

@@ -3,6 +3,7 @@ import platform
 import subprocess
 import sys
 from pathlib import Path
+import urllib.request
 
 
 
@@ -91,16 +92,17 @@ def uninstall_package(package_name):
 
 def download_file(url, destination) : 
     try :
-        command = [
-            "powershell.exe",
-            "-Command",
-            f"Invoke-WebRequest -Uri '{url}' -Outfile '{destination}' -UseBasicParsing"    
-        ]
-        subprocess.run(
-            command,
-            check = True, 
-            stdout = subprocess.PIPE if not DEBUG else None
-        )
+        # command = [
+        #     "powershell.exe",
+        #     "-Command",
+        #     f"Invoke-WebRequest -Uri '{url}' -Outfile '{destination}' -UseBasicParsing"    
+        # ]
+        # subprocess.run(
+        #     command,
+        #     check = True, 
+        #     stdout = subprocess.PIPE if not DEBUG else None
+        # )
+        urllib.request.urlretrieve(url, destination)
         log (f"Fichier téléchargé : {destination.name}", False)
         return True
     except subprocess.CalledProcessError as e :

@@ -152,7 +152,7 @@ def install_msi(msi_path, server, tag) :
         command = [
             "msiexec.exe",
             "/i", str(msi_path),
-            f"/qb SERVER={server} TAG={tag} RUNNOW=1",
+            f"/qb SERVER={server} TAG={tag} FULL-INVENTORY-POSTPONE=0 RUNNOW=1",
         ]
         subprocess.run(
             command,
@@ -222,6 +222,7 @@ def create_config_mac(path, server, tag) :
         fichier_config = f"""
 server = {server}
 debug=1
+full-inventory-postpone=0
 tag = {tag}
 """
         with tempfile.NamedTemporaryFile(mode='w', suffix='.cfg', delete = False) as tmp_file :
@@ -308,7 +309,7 @@ def install_glpi_windows(tag) :
     if not uninstall_package(WINGET_AGENT_NAME) : 
         return False
     if is_winget_installed() : 
-        custom_args = f"SERVER={SERVER} TAG={tag} RUNNOW=1"
+        custom_args = f"SERVER={SERVER} TAG={tag} FULL-INVENTORY-POSTPONE=0 RUNNOW=1"
         return install_with_winget(WINGET_AGENT_NAME, custom_args)
     
     try : 

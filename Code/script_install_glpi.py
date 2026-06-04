@@ -377,7 +377,6 @@ def main():
         log("Le tag ne peut pas être vide.", True)
         sys.exit(1)
     system = platform.system()
-    
     if system == "Windows":
         if not install_glpi_windows(tag) : 
            sys.exit(1)

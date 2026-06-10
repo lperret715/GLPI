@@ -9,16 +9,16 @@ from pathlib import Path
 # ---------------- LIENS --------------------------------------------------------------------------------------------------
 
 SERVER = "https://micronov.fr36.glpi-network.cloud"
-MONITOR="https://github.com/glpi-project/glpi-agentmonitor/releases/download/1.5.0/GLPI-AgentMonitor-x64.exe"
 AGENT_WINDOWS="https://github.com/glpi-project/glpi-agent/releases/download/1.17/GLPI-Agent-1.17-x64.msi"
 AGENT_MAC="https://github.com/glpi-project/glpi-agent/releases/download/1.17/GLPI-Agent-1.17_x86_64.pkg"
 AGENT_LINUX="https://github.com/glpi-project/glpi-agent/releases/download/1.17/glpi-agent-1.17-linux-installer.pl"
-DOCUMENTATION_LINUX = "https://glpi-agent.readthedocs.io/en/latest/installation/index.html#gnu-linux"
+MONITOR="https://github.com/glpi-project/glpi-agentmonitor/releases/download/1.5.0/GLPI-AgentMonitor-x64.exe" # Agent moniteur, permet sous Windows de donner des commandes à l'agent
+DOCUMENTATION_LINUX = "https://glpi-agent.readthedocs.io/en/latest/installation/index.html#gnu-linux" # Lien vers la documentation de linux en cas d'échec de l'installation
 
 #---------------- CONSTANTES -----------------------------------------------------------------------------------------------
 
-DEBUG = True
-SUPPORTED_LINUX_DISTROS = ["redhat", "centos", "debian", "ubuntu"]
+DEBUG = True # Constante Débug pour log les potentiels problemes lors de l'installation
+SUPPORTED_LINUX_DISTROS = ["redhat", "centos", "debian", "ubuntu"] # Distributions Linux supportées
 
 # ---------------- CHEMINS -------------------------------------------------------------------------------------------------
 
@@ -42,34 +42,34 @@ WINGET_MONITOR_NAME = "GLPI Agent Monitor"
 AGENT_LINUX_NAME = "glpi-agent-installer.pl"
 AGENT_MAC_NAME = "com.teclib.glpi-agent"
 
-#------------------------------DEPENDANCES--------------------------------------------------------------------------------------
+#------------------------------ LISTE DES DEPENDANCES NECESSAIRES --------------------------------------------------------------------------------------
 
-MISSING_LINUX_DEPS = []
+MISSING_DEPS = []
 REQUIRED_LINUX_DEPS = ["perl", "libxml-libxml-perl", "libnet-ip-perl", "dmidecode"]
-MISSING_MAC_DEPS = []
 REQUIRED_MAC_DEPS = ["curl", "installer"]
 
-#----------------------------FONCTIONS COMMUNES A TOUS OS---------------------------------------------------------------------------------
+#---------------------------- FONCTIONS COMMUNES A TOUS OS---------------------------------------------------------------------------------
 
-#Afficher message de validation ou d'erreur
-def log(message,error) :
+#Afficher un message de validation ou d'erreur (error = True s'il y a une erreur, False sinon)
+def log(message: str, error=True) :
     prefix = "❌ [ERREUR]" if error else "✅ [INFO]"
     print(f"{prefix} {message}")
 
 #Télécharger un fichier via un url
-def download_file(url, destination) : 
+def download_file(url: str, destination: str) :
     try :
         urllib.request.urlretrieve(url, destination)
         log (f"Fichier téléchargé : {destination.name}", False)
         return True
+    # S'il y a une erreur on le signale directement
     except subprocess.CalledProcessError as e :
-        log (f"Echec du téléchargement de {url} : {e}", True)
+        log (f"Echec du téléchargement de {url} : {e}")
         return False
 
 #Vérifier si les dépendances nécessaires à l'installation sont installées sur cette machine
-def check_dependencies(missing, required) : 
-    missing = []
-    for dep in required : 
+def check_dependencies(missing_deps: list, required_deps: list) :
+    missing_deps = []
+    for dep in required_deps : 
         try :
             subprocess.run(
                 ["which", dep],
@@ -78,14 +78,14 @@ def check_dependencies(missing, required) :
                 stderr = subprocess.DEVNULL,
             )
         except subprocess.CalledProcessError : 
-            missing.append(dep)
-    if missing : 
-        log(f"Dépendances manquantes : {','.join(missing)}", True)
+            missing_deps.append(dep)
+    if missing_deps : 
+        log(f"Dépendances manquantes : {','.join(missing_deps)}")
         return False
     return True
 
 #Si ce n'est pas le cas, installer les dépendances manquantes
-def install_dependencies(missing) : 
+def install_dependencies(missing_deps: list) : 
     try : 
         subprocess.run(
             ["sudo", "apt", "update"],
@@ -93,20 +93,20 @@ def install_dependencies(missing) :
             stdout = subprocess.PIPE if not DEBUG else None,
         )
         subprocess.run(
-            ["sudo", "apt", "install", "-y"] + missing,
+            ["sudo", "apt", "install", "-y"] + missing_deps,
             check = True,
             stdout = subprocess.PIPE if not DEBUG else None,
         )
         log("Dépendances installées avec succès", False)
         return True
     except subprocess.CalledProcessError as e : 
-        log(f"Echec de l'installation des dépendances : {e}", True)
+        log(f"Echec de l'installation des dépendances : {e}")
         return False
 
 #------------------------------------------------------ FONCTIONS NECESSAIRES A INSTALLATION WINDOWS --------------------------------------------------------------------------
 
 #Regarder si l'agent existe déjà
-def is_package_installed(package_name):
+def is_package_installed(package_name: str):
     try:
         res = subprocess.run(
             ["winget", "list", "--id", package_name], 
@@ -120,7 +120,7 @@ def is_package_installed(package_name):
         return False
 
 #Désinstaller l'agent s'il existe (UNIQUEMENT POUR TESTS, A NE PAS CONSERVER DANS LE CODE FINAL)
-def uninstall_package(package_name):
+def uninstall_package(package_name: str):
     if not is_package_installed(package_name):
         log(f"{package_name} n'est pas installé.", False)
         return True
@@ -143,16 +143,20 @@ def uninstall_package(package_name):
         log(f"{package_name} désinstallé avec succès.", False)
         return True
     except subprocess.CalledProcessError as e:
-        log(f"Erreur pendant la désinstallation de {package_name} : {e}", True)
+        log(f"Erreur pendant la désinstallation de {package_name} : {e}")
         return False
 
 #Installer un package msi 
-def install_msi(msi_path, server, tag) : 
+def install_msi(msi_path: str, server: str, tag: str) : 
     try : 
         command = [
             "msiexec.exe",
             "/i", str(msi_path),
-            f"/qb SERVER={server} TAG={tag} FULL-INVENTORY-POSTPONE=0 RUNNOW=1",
+            "/qb",
+            f"SERVER={server}",
+            f"TAG={tag}",
+            "FULL-INVENTORY-POSTPONE=0",
+            "RUNNOW=1",
         ]
         subprocess.run(
             command,
@@ -161,7 +165,7 @@ def install_msi(msi_path, server, tag) :
         log(f"Installation de {msi_path} terminée.", False)
         return True
     except subprocess.CalledProcessError as e :
-        log(f"Echec de l'installation de {msi_path} : {e}", True)
+        log(f"Echec de l'installation de {msi_path} : {e}")
         return False
 
 #Regarder si winget existe
@@ -178,7 +182,7 @@ def is_winget_installed():
         return False
 
 #installer un package via Winget (Bien plus rapide !)
-def install_with_winget(package_name, custom_args) : 
+def install_with_winget(package_name: str, custom_args: list) : 
     try : 
         command = [
             "winget", "install",
@@ -194,12 +198,15 @@ def install_with_winget(package_name, custom_args) :
         log(f"{package_name} installé avec succès", False)
         return True
     except subprocess.CalledProcessError as e : 
-        log(f"Erreur lors de l'installation de {package_name} : {e}", True)
+        log(f"Erreur lors de l'installation de {package_name} : {e}")
         return False
 
 #------------------------------------------------------ FONCTIONS NECESSAIRES A INSTALLATION MAC --------------------------------------------------------------------------
 
-def install_package_mac(pkg) :
+
+
+# Installer un package Mac
+def install_package_mac(pkg: str) :
     cmd = [
         "sudo", "installer",
         "-verbose",
@@ -214,11 +221,14 @@ def install_package_mac(pkg) :
         log("GLPI Agent installé avec succès", False)
         return True
     except subprocess.CalledProcessError as e :
-        log(f"Erreur pendant l'installation : {e}", True)
+        log(f"Erreur pendant l'installation : {e}")
         return False
 
-def create_config_mac(path, server, tag) :
+
+#Créer un fichier de configuration
+def create_config_mac(path: str, server: str, tag: str) :
     try :
+        #structure et contenu du fichier de config
         fichier_config = f"""
 server = {server}
 debug=1
@@ -237,12 +247,13 @@ tag = {tag}
         tmp_path.unlink()
         return True
     except Exception as e :
-        log(f"Erreur lors de la création du fichier de configuration : {e}", True)
+        log(f"Erreur lors de la création du fichier de configuration : {e}")
         if tmp_path.exists() :
             tmp_path.unlink()
         return False
 
-def start_process_mac(process) :
+# Lancer un process
+def start_process_mac(process: str) :
     cmd = [
         "sudo", "launchctl",
         "start", process
@@ -252,21 +263,23 @@ def start_process_mac(process) :
         log(f"{process} démarré avec succès", False)
         return True
     except subprocess.CalledProcessError as e :
-        log(f"{process} n'a pas pu être démarré : {e}", True)
+        log(f"{process} n'a pas pu être démarré : {e}")
         return False
-    
-def agent_run_mac(agent) :
+
+# Lancer l'agent    
+def agent_run_mac(agent: str) :
     cmd = ["sudo", agent]
     try :
         subprocess.run(cmd, check = True)
         log(f"{agent} démarré avec succès", False)
         return True
     except subprocess.CalledProcessError as e :
-        log(f"{agent} n'a pas pu être démarré : {e}", True)
+        log(f"{agent} n'a pas pu être démarré : {e}")
         return False
     
 # ------------------------------------------FONCTIONS NECESSAIRES A INSTALLATION LINUX --------------------------------------------------------------
 
+# Obtenir la distribution de la machine (installation pas possible sur n'importe quelle distrib)
 def get_linux_distro() :
     try : 
         with open("/etc/os-release") as f :
@@ -277,10 +290,11 @@ def get_linux_distro() :
         pass
     return None
 
-def run_agent_install_linux(server, tag) :
+# Installation Linux
+def run_agent_install_linux(server: str, tag: str) :
     cmd = [
         "sudo", "perl", AGENT_LINUX_NAME,
-        "-s", server,
+        "-s", server, 
         "-t", tag,
         "--full-inventory-postpone",
         "--install",
@@ -293,7 +307,7 @@ def run_agent_install_linux(server, tag) :
         log("GLPI Agent installé avec succès.", False)
         return True 
     except subprocess.CalledProcessError as e :
-        log(f"Echec de l'installation : {e}", True)
+        log(f"Echec de l'installation : {e}")
         return False
     
 def cleanup() :
@@ -305,12 +319,12 @@ def cleanup() :
 
 # ------------------------- WINDOWS -----------------
 
-def install_glpi_windows(tag) :
-    if not uninstall_package(WINGET_AGENT_NAME) : 
-        return False
-    if is_winget_installed() : 
-        custom_args = f"SERVER={SERVER} TAG={tag} FULL-INVENTORY-POSTPONE=0 RUNNOW=1"
-        return install_with_winget(WINGET_AGENT_NAME, custom_args)
+def install_glpi_windows(tag: str) :
+#     if not uninstall_package(WINGET_AGENT_NAME) : 
+    #     return False
+    # if is_winget_installed() : 
+    #     custom_args = f"SERVER={SERVER} TAG={tag} FULL-INVENTORY-POSTPONE=0 RUNNOW=1"
+    #     return install_with_winget(WINGET_AGENT_NAME, custom_args)
     
     try : 
         if not download_file(AGENT_WINDOWS, AGENT_WINDOWS_PATH) :
@@ -324,11 +338,11 @@ def install_glpi_windows(tag) :
 
 # ------------------------ MAC --------------------------
 
-def install_glpi_mac(tag) : 
+def install_glpi_mac(tag: str) : 
     try : 
-        if not check_dependencies(MISSING_MAC_DEPS, REQUIRED_MAC_DEPS) :
+        if not check_dependencies(MISSING_DEPS, REQUIRED_MAC_DEPS) :
             log("Installation des dépendances...", False)
-            if not install_dependencies(MISSING_MAC_DEPS) :
+            if not install_dependencies(MISSING_DEPS) :
                 return False
         if not download_file(AGENT_MAC, AGENT_MAC_PKG_PATH) :
             return False
@@ -347,14 +361,14 @@ def install_glpi_mac(tag) :
 
 # ----------------- LINUX --------------------------------
 
-def install_glpi_linux(server, tag) : 
+def install_glpi_linux(server: str, tag: str) : 
     distro = get_linux_distro()
     if distro not in SUPPORTED_LINUX_DISTROS :
-        log(f"Distribution non supportée : {distro}. \n Voire les solutions possibles : {DOCUMENTATION_LINUX}", True)
+        log(f"Distribution non supportée : {distro}. \n Voire les solutions possibles : {DOCUMENTATION_LINUX}")
         sys.exit(1) 
-    if not check_dependencies(MISSING_LINUX_DEPS, REQUIRED_LINUX_DEPS) : 
+    if not check_dependencies(MISSING_DEPS, REQUIRED_LINUX_DEPS) : 
         log("Installation des dépendances...", False)
-        if not install_dependencies(MISSING_LINUX_DEPS) : 
+        if not install_dependencies(MISSING_DEPS) : 
             sys.exit(1)
     if not download_file(AGENT_LINUX) : 
         sys.exit(1)
@@ -375,7 +389,7 @@ def install_glpi_monitor():
 def main():
     tag = input ("Tag : ")
     if not tag : 
-        log("Le tag ne peut pas être vide.", True)
+        log("Le tag ne peut pas être vide.")
         sys.exit(1)
     system = platform.system()
     if system == "Windows":

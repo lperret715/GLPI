@@ -320,11 +320,11 @@ def cleanup() :
 # ------------------------- WINDOWS -----------------
 
 def install_glpi_windows(tag: str) :
-#     if not uninstall_package(WINGET_AGENT_NAME) : 
-    #     return False
-    # if is_winget_installed() : 
-    #     custom_args = f"SERVER={SERVER} TAG={tag} FULL-INVENTORY-POSTPONE=0 RUNNOW=1"
-    #     return install_with_winget(WINGET_AGENT_NAME, custom_args)
+    if not uninstall_package(WINGET_AGENT_NAME) : 
+        return False
+    if is_winget_installed() : 
+        custom_args = f"SERVER={SERVER} TAG={tag} FULL-INVENTORY-POSTPONE=0 RUNNOW=1"
+        return install_with_winget(WINGET_AGENT_NAME, custom_args)
     
     try : 
         if not download_file(AGENT_WINDOWS, AGENT_WINDOWS_PATH) :

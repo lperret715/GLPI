@@ -58,10 +58,10 @@ def install_dependencies() :
         log(f"Echec de l'installation des dépendances : {e}", True)
         return False
 
-def download_agent() : 
+def download_file(url, destination) : 
     try : 
-        urllib.request.urlretrieve(AGENT_LINUX_URL, AGENT_SCRIPT)
-        log(f"Script téléchargé : {AGENT_SCRIPT}", False)
+        urllib.request.urlretrieve(url, destination)
+        log(f"Script téléchargé : {destination.name}", False)
         return True
     except Exception as e :
         log(f"Echec du téléchargement : {e}", True)
@@ -112,7 +112,7 @@ def install_glpi_linux(server, tag) :
         log("Installation des dépendances...", False)
         if not install_dependencies() : 
             sys.exit(1)
-    if not download_agent() : 
+    if not download_file(AGENT_LINUX_URL, AGENT_SCRIPT) : 
         sys.exit(1)
     if not run_agent_install(server, tag) : 
         sys.exit(1)

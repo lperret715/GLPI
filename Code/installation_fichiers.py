@@ -8,7 +8,8 @@ url = "https://github.com/tensorflow/tensorflow/archive/refs/tags/v2.20.0.zip"
 destination_folder = Path.home() / "Downloads"
 file_name = "telechargement.zip"
 
-iteration = 0
+
+iteration = int(input("Number_iteration"))
 while True :
     try :
         unique_file_name = f"{file_name.replace('.zip', '')}_{iteration}.zip"

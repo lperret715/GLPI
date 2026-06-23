@@ -1,0 +1,101 @@
+SELECT
+   c.name as Ordinateur,
+   CASE WHEN MAX(i_db.real_capacity) = 0
+   OR MAX(db.capacity) = 0 THEN
+      '❓'
+   WHEN MIN(
+      CASE WHEN i_db.real_capacity > 0
+      AND db.capacity > 0 THEN
+         (i_db.real_capacity / db.capacity) * 100
+      ELSE
+         NULL
+      END
+   ) <= 50 THEN
+      '❌'
+   WHEN MIN(
+      CASE WHEN i_db.real_capacity > 0
+      AND db.capacity > 0 THEN
+         (i_db.real_capacity / db.capacity) * 100
+      ELSE
+         NULL
+      END
+   ) <= 80 THEN
+      '⚠️⚠️'
+   ELSE
+      '✅'
+   END AS Batterie,
+   CASE WHEN SUM(i_d.freesize)/ SUM(i_d.totalsize) * 100 <= 20 THEN
+      '❌'
+   WHEN SUM(i_d.freesize)/ SUM(i_d.totalsize) * 100 <= 50
+   AND SUM(i_d.freesize)/ SUM(i_d.totalsize) * 100 > 20 THEN
+      '⚠️⚠️'
+   ELSE
+      '✅'
+   END AS Disques,
+   CASE WHEN MIN(iav.is_active) = 1 THEN
+      '✅'
+   ELSE
+      '❌'
+   END AS 'AV actif',
+   CASE WHEN MIN(iav.is_uptodate) = 1 THEN
+      '✅'
+   ELSE
+      '❌'
+   END AS 'AV à jour',
+   CASE WHEN MAX(iav.date_expiration) IS NULL THEN
+      NULL
+   WHEN MAX(iav.date_expiration) <= CURRENT_DATE THEN
+      '❌'
+   WHEN MAX(iav.date_expiration) > CURRENT_DATE
+   AND MAX(iav.date_expiration) <= DATE_ADD(CURRENT_DATE, INTERVAL 14 DAY) THEN
+      '⚠️⚠️'
+   WHEN MAX(iav.date_expiration) > DATE_ADD(CURRENT_DATE, INTERVAL 14 DAY) THEN
+      '✅'
+   END AS Expiration
+FROM
+   glpi_computers c
+   LEFT JOIN glpi_groups_items g_i ON g_i.items_id = c.id
+   LEFT JOIN glpi_groups g ON g_i.groups_id = g.id
+   LEFT JOIN glpi_itemantiviruses iav ON iav.items_id = c.id
+   LEFT JOIN glpi_items_devicebatteries i_db ON i_db.items_id = c.id
+   LEFT JOIN glpi_devicebatteries db ON i_db.devicebatteries_id = db.id
+   LEFT JOIN glpi_items_softwareversions i_sv ON i_sv.items_id = c.id
+   LEFT JOIN glpi_softwareversions sv ON i_sv.softwareversions_id = sv.id
+   LEFT JOIN glpi_softwares s ON sv.softwares_id = s.id
+   LEFT JOIN glpi_items_disks i_d ON i_d.items_id = c.id
+WHERE
+   c.is_deleted = 0
+   AND c.is_template = 0
+   AND (
+      NOT EXISTS (
+         SELECT
+            1
+         FROM
+            glpi_dashboards_filters d_f
+         WHERE
+            d_f.filter IS NOT NULL
+            AND d_f.filter != ''
+            AND d_f.filter != '{}'
+            AND JSON_UNQUOTE(
+               JSON_EXTRACT(d_f.filter, '$.group_requester')
+            ) != 'null'
+      )
+      OR g.id IN (
+         SELECT
+            CAST(
+               JSON_UNQUOTE(
+                  JSON_EXTRACT(d_f.filter, '$.group_requester')
+               ) AS UNSIGNED
+            )
+         FROM
+            glpi_dashboards_filters d_f
+         WHERE
+            d_f.filter IS NOT NULL
+            AND d_f.filter != ''
+            AND d_f.filter != '{}'
+      )
+   )
+GROUP BY
+   c.name
+ORDER BY
+   Batterie

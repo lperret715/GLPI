@@ -1,0 +1,7 @@
+SELECT
+   COUNT(DISTINCT p_u.users_id)
+FROM
+   glpi_profiles_users p_u
+   LEFT JOIN glpi_profiles p ON p_u.profiles_id = p.id
+WHERE
+   p.name = 'Technicien';

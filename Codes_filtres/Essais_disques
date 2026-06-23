@@ -1,0 +1,44 @@
+SELECT
+   c.name as Ordinateur,
+   SUM(i_d.freesize) as 'Place disponible',
+   SUM(i_d.totalsize) as 'Taille totale disques',
+   (SUM(i_d.freesize)/SUM(i_d.totalsize))*100 as 'Espace disponible',
+   CASE WHEN (SUM(i_d.freesize)/SUM(i_d.totalsize))*100 <= 10 THEN ' ⚠️⚠️ Libérer de l''espace' ELSE NULL END as Avertissements
+FROM
+   glpi_computers c
+   LEFT JOIN glpi_items_disks i_d ON i_d.items_id = c.id
+   LEFT JOIN glpi_groups_items g_i ON g_i.items_id = c.id
+   LEFT JOIN glpi_groups g ON g_i.groups_id = g.id
+WHERE
+   c.is_deleted = 0
+   AND c.is_template = 0
+   AND (
+      NOT EXISTS (
+         SELECT
+            1
+         FROM
+            glpi_dashboards_filters df
+         WHERE
+            df.filter IS NOT NULL
+            AND df.filter != ''
+            AND df.filter != '{}'
+            AND JSON_UNQUOTE(
+               JSON_EXTRACT(df.filter, '$.group_requester')
+            ) != 'null'
+      )
+      OR g.id IN (
+         SELECT
+            CAST(
+               JSON_UNQUOTE(
+                  JSON_EXTRACT(df.filter, '$.group_requester')
+               ) AS UNSIGNED
+            )
+         FROM
+            glpi_dashboards_filters df
+         WHERE
+            df.filter IS NOT NULL
+            AND df.filter != ''
+            AND df.filter != '{}'
+      )
+   )
+GROUP BY c.name 

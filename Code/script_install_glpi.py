@@ -34,6 +34,8 @@ AGENT_MAC_PKG_PATH = Path("/Applications") / "GLPI-Agent.pkg"
 CONFIG_MAC_DIR = Path("/Applications/GLPI-Agent/etc/conf.d")
 CONFIG_MAC_PATH = CONFIG_MAC_DIR / "glpi.cfg"
 AGENT_MAC_PATH = Path("/Applications/GLPI-Agent/bin/glpi-agent")
+LOG_FILE = "erreurs.log"
+log_file = None
 
 #---------------- NOMS PACKAGES -----------------------------------------------------------------------------------------------
 
@@ -53,7 +55,12 @@ REQUIRED_MAC_DEPS = ["curl", "installer"]
 #Afficher un message de validation ou d'erreur (error = True s'il y a une erreur, False sinon)
 def log(message: str, error=True) :
     prefix = "❌ [ERREUR]" if error else "✅ [INFO]"
-    print(f"{prefix} {message}")
+
+    formatted_message = f"{prefix} {message}\n"
+    print(formatted_message)
+    if log_file :
+        log_file.write(formatted_message)
+        log_file.flush()
 
 #Télécharger un fichier via un url
 def download_file(url: str, destination: str) :
@@ -181,6 +188,36 @@ def is_winget_installed():
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
 
+
+
+def ensure_winget_ready() :
+    try :
+        subprocess.run(
+            ["winget", "list", "--id", "Microsoft.WindowsCalculator"], 
+            check=True, 
+            stdout=subprocess.DEVNULL, 
+            stderr=subprocess.DEVNULL, 
+            timeout=10
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+        log("⚠️ Winget n'est pas opérationnel. Tentative d'acceptation des termes...", False)
+        try:
+            subprocess.run(
+                ["winget", "settings", "--accept"], 
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            return True
+        except subprocess.CalledProcessError as e:
+            log(f"Impossible de configurer winget correctement : {e},\n Démarrage de l'installation classique", True)
+            return False
+
+
+
+
+
 #installer un package via Winget (Bien plus rapide !)
 def install_with_winget(package_name: str, custom_args: list) : 
     try : 
@@ -188,8 +225,8 @@ def install_with_winget(package_name: str, custom_args: list) :
             "winget", "install",
             package_name,
             "--custom", custom_args,
-            "--accept-source-agreements",
             "--accept-package-agreements",
+            "--accept-source-agreements",
         ]
         subprocess.run(
             command,
@@ -323,8 +360,9 @@ def install_glpi_windows(tag: str) :
     if not uninstall_package(WINGET_AGENT_NAME) : 
         return False
     if is_winget_installed() : 
-        custom_args = f"SERVER={SERVER} TAG={tag} FULL-INVENTORY-POSTPONE=0 RUNNOW=1"
-        return install_with_winget(WINGET_AGENT_NAME, custom_args)
+        if ensure_winget_ready():
+            custom_args = f"SERVER={SERVER} TAG={tag} FULL-INVENTORY-POSTPONE=0 RUNNOW=1"
+            return install_with_winget(WINGET_AGENT_NAME, custom_args)
     
     try : 
         if not download_file(AGENT_WINDOWS, AGENT_WINDOWS_PATH) :
@@ -387,24 +425,31 @@ def install_glpi_monitor():
         return False
 
 def main():
+    global log_file
     tag = input ("Tag : ")
     if not tag : 
         log("Le tag ne peut pas être vide.")
         sys.exit(1)
-    system = platform.system()
-    if system == "Windows":
-        if not install_glpi_windows(tag) : 
-           sys.exit(1)
-        if not install_glpi_monitor() :
-           sys.exit(1)
-    elif system == "Linux":
-        if not install_glpi_linux(SERVER, tag) : 
-            sys.exit(1)
-    elif system == "Darwin":
-        if not install_glpi_mac(tag) :
-            sys.exit(1)
-    else:
-        print(f"OS non supporté : {system}")
+
+    log_file = open(LOG_FILE, "a", encoding = "utf-8")
+    try :
+        system = platform.system()
+        if system == "Windows":
+            if not install_glpi_windows(tag) : 
+                sys.exit(1)
+            if not install_glpi_monitor() :
+                sys.exit(1)
+        elif system == "Linux":
+            if not install_glpi_linux(SERVER, tag) : 
+                sys.exit(1)
+        elif system == "Darwin":
+            if not install_glpi_mac(tag) :
+                sys.exit(1)
+        else:
+            print(f"OS non supporté : {system}")
+    finally :
+        log("✅ Fin de l'installation", error=False)
+        log_file.close()
 
 if __name__ == "__main__":
     main()

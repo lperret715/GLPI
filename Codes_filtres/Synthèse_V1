@@ -1,0 +1,104 @@
+SELECT
+   c.name AS Ordinateur,
+   CASE WHEN MAX(i_db.real_capacity) = 0
+   OR MAX(db.capacity) = 0 THEN
+      'Pas d''information'
+   WHEN MIN(
+      CASE WHEN i_db.real_capacity > 0
+      AND db.capacity > 0 THEN
+         (i_db.real_capacity / db.capacity) * 100
+      ELSE
+         NULL
+      END
+   ) <= 50 THEN
+      '❌ Batterie endommagée'
+   WHEN MIN(
+      CASE WHEN i_db.real_capacity > 0
+      AND db.capacity > 0 THEN
+         (i_db.real_capacity / db.capacity)* 100
+      ELSE
+         NULL
+      END
+   ) <= 80 THEN
+      '⚠️⚠️Batterie usée'
+   ELSE
+      '✅'
+   END AS Batterie,
+   CASE WHEN MIN(iav.is_active)= 1 THEN
+      '✅'
+   ELSE
+      '❌'
+   END AS `AV actif`,
+   CASE WHEN MIN(iav.is_uptodate)= 1 THEN
+      '✅'
+   ELSE
+      '❌'
+   END AS 'AV à jour',
+   CASE WHEN MIN(iav.date_expiration) >= DATE_ADD(CURRENT_DATE, INTERVAL 14 DAY)
+   AND MIN(iav.date_expiration) IS NOT NULL THEN
+      '✅'
+   WHEN MIN(iav.date_expiration) <= DATE_ADD(CURRENT_DATE, INTERVAL 14 DAY)
+   AND MIN(iav.date_expiration) IS NOT NULL
+   AND iav.date_expiration > CURRENT_DATE THEN
+      '⚠️⚠️ Expire Bientôt'
+   WHEN MIN(iav.date_expiration) IS NULL THEN
+      'Pas d''information'
+   ELSE
+      '❌ AV Expiré'
+   END AS 'Etat AV',
+   CASE WHEN (
+      SUM(i_d.freesize)/ SUM(i_d.totalsize)
+   )* 100 >= 25 THEN
+      '✅'
+   WHEN (
+      SUM(i_d.freesize)/ SUM(i_d.totalsize)
+   )* 100 >= 10 THEN
+      '⚠️⚠️'
+   ELSE
+      '❌ Disques saturés'
+   END AS `Etat disques`
+FROM
+   glpi_computers c
+   LEFT JOIN glpi_groups_items g_i ON g_i.items_id = c.id
+   LEFT JOIN glpi_groups g ON g_i.groups_id = g.id
+   LEFT JOIN glpi_items_devicebatteries i_db ON i_db.items_id = c.id
+   LEFT JOIN glpi_devicebatteries db ON i_db.devicebatteries_id = db.id
+   LEFT JOIN glpi_itemantiviruses iav ON iav.items_id = c.id
+   LEFT JOIN glpi_items_disks i_d ON i_d.items_id = c.id
+WHERE
+   c.is_deleted = 0
+   AND c.is_template = 0
+   AND (
+      NOT EXISTS (
+         SELECT
+            1
+         FROM
+            glpi_dashboards_filters df
+         WHERE
+            df.filter IS NOT NULL
+            AND df.filter != ''
+            AND df.filter != '{}'
+            AND JSON_UNQUOTE(
+               JSON_EXTRACT(df.filter, '$.group_requester')
+            ) != 'null'
+      )
+      OR g.id IN (
+         SELECT
+            CAST(
+               JSON_UNQUOTE(
+                  JSON_EXTRACT(df.filter, '$.group_requester')
+               ) AS UNSIGNED
+            )
+         FROM
+            glpi_dashboards_filters df
+         WHERE
+            df.filter IS NOT NULL
+            AND df.filter != ''
+            AND df.filter != '{}'
+      )
+   )
+
+GROUP BY
+   c.name
+ORDER BY 
+   Batterie, `AV actif`, `AV à jour`, `Etat disques`

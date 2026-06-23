@@ -1,0 +1,71 @@
+SELECT
+   COUNT(
+      DISTINCT CASE WHEN iav.is_active = 0 THEN
+         c.id
+      END
+   ) AS Inactifs,
+   COUNT(
+      DISTINCT CASE WHEN iav.is_uptodate = 0 THEN
+         c.id
+      END
+   ) AS 'Pas à jour',
+   COUNT(
+      DISTINCT CASE WHEN iav.date_expiration <= DATE_ADD(CURRENT_DATE, INTERVAL 14 DAY)
+      AND iav.date_expiration > CURRENT_DATE THEN
+         c.id
+      END
+   ) AS 'Expire bientôt',
+   COUNT(
+      DISTINCT CASE WHEN iav.date_expiration <= CURRENT_DATE THEN
+         c.id
+      END
+   ) AS 'Expiré !',
+   COUNT(
+      DISTINCT CASE WHEN NOT(
+         iav.is_active = 0
+         OR iav.is_uptodate = 0
+         OR (
+            iav.date_expiration <= DATE_ADD(CURRENT_DATE, INTERVAL 14 DAY)
+            AND iav.date_expiration IS NOT NULL
+         )
+      ) THEN
+         c.id
+      END
+   ) AS 'OK'
+FROM
+   glpi_computers c
+   LEFT JOIN glpi_itemantiviruses iav ON iav.items_id = c.id
+   LEFT JOIN glpi_groups_items g_i ON g_i.items_id = c.id
+   LEFT JOIN glpi_groups g ON g_i.groups_id = g.id
+WHERE
+   c.is_deleted = 0
+   AND c.is_template = 0
+   AND (
+      NOT EXISTS(
+         SELECT
+            1
+         FROM
+            glpi_dashboards_filters d_f
+         WHERE
+            d_f.filter IS NOT NULL
+            AND d_f.filter != ''
+            AND d_f.filter != '{}'
+            AND JSON_UNQUOTE(
+               JSON_EXTRACT(d_f.filter, '$.group_requester')
+            ) != 'null'
+      )
+      OR g.id IN (
+         SELECT
+            CAST(
+               JSON_UNQUOTE(
+                  JSON_EXTRACT(d_f.filter, '$.group_requester')
+               ) AS UNSIGNED
+            )
+         FROM
+            glpi_dashboards_filters d_f
+         WHERE
+            d_f.filter IS NOT NULL
+            AND d_f.filter != ''
+            AND d_f.filter != '{}'
+      )
+   )

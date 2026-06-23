@@ -1,0 +1,60 @@
+SELECT
+   c.name AS Ordinateur,
+   os.name AS OS,
+   osv.name AS Version,
+   MAX(
+      CASE WHEN s.name LIKE '%Office%' THEN
+         s.name
+      ELSE
+         NULL
+      END
+   ) AS 'Pack Office',
+   MAX(
+      CASE WHEN s.name LIKE '%Office%' THEN
+         sv.name
+      ELSE
+         NULL
+      END
+   ) AS 'Version Pack Office',
+   g.name AS Groupe
+FROM
+   glpi_computers c -- Jointures pour OS (LEFT JOIN pour garder les ordinateurs sans OS)
+   LEFT JOIN glpi_items_operatingsystems i_os ON i_os.items_id = c.id
+   LEFT JOIN glpi_operatingsystems os ON i_os.operatingsystems_id = os.id
+   LEFT JOIN glpi_operatingsystemversions osv ON i_os.operatingsystemversions_id = osv.id -- Jointures pour les logiciels (LEFT JOIN pour ne pas exclure les ordinateurs sans Office)
+   LEFT JOIN glpi_items_softwareversions i_sv ON i_sv.items_id = c.id
+   LEFT JOIN glpi_softwareversions sv ON i_sv.softwareversions_id = sv.id
+   LEFT JOIN glpi_softwares s ON sv.softwares_id = s.id -- Jointures pour les groupes (LEFT JOIN pour garder les ordinateurs sans groupe)
+   LEFT JOIN glpi_groups_items g_i ON g_i.items_id = c.id
+   LEFT JOIN glpi_groups g ON g_i.groups_id = g.id
+WHERE
+   c.is_deleted = 0
+   AND c.is_template = 0
+   AND (
+      NOT EXISTS (
+         SELECT 1
+         FROM glpi_dashboards_filters df 
+         WHERE 
+            df.filter IS NOT NULL
+            AND df.filter != '' 
+            AND df.filter != '{}'
+            AND JSON_UNQUOTE(
+               JSON_EXTRACT(df.filter, '$.group_requester')
+            ) != 'null'
+      )
+   OR g.id IN (
+      SELECT 
+         CAST(
+            JSON_UNQUOTE(
+               JSON_EXTRACT(df.filter, '$.group_requester')
+            ) AS UNSIGNED
+         )
+      FROM glpi_dashboards_filters df
+      WHERE 
+         df.filter IS NOT NULL
+         AND df.filter != ''
+         AND df.filter != '{}'
+   )
+   )
+GROUP BY
+   c.id, os.name, osv.name, g.name;

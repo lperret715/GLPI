@@ -1,0 +1,65 @@
+SELECT
+   DISTINCT CASE WHEN iav.is_active = 1 THEN
+      '✅'
+   ELSE
+      '❌'
+   END as Actif,
+   CASE WHEN iav.is_uptodate = 1 THEN
+      '✅'
+   ELSE
+      '❌'
+   END as 'À jour',
+   CASE WHEN iav.date_expiration <= DATE_ADD(CURRENT_DATE, INTERVAL 14 DAY) THEN
+      CONCAT (
+         '⚠️⚠️ ',
+         DATE_FORMAT(iav.date_expiration, '%d-%m-%Y')
+      )
+   ELSE
+      DATE_FORMAT (iav.date_expiration, '%d-%m-%Y')
+   END as Expiration,
+   c.name as Poste,
+   g.name as Groupe,
+   iav.name as Antivirus,
+   iav.antivirus_version as Version,
+   c.last_inventory_update as 'Dernières infos'
+FROM
+   glpi_computers c
+   LEFT JOIN glpi_itemantiviruses iav ON iav.items_id = c.id
+   LEFT JOIN glpi_groups_items g_i ON g_i.items_id = c.id
+   LEFT JOIN glpi_groups g ON g.id = g_i.groups_id
+WHERE
+   c.is_deleted = 0
+   AND c.is_template = 0
+   AND (
+      NOT EXISTS (
+         SELECT
+            1
+         FROM
+            glpi_dashboards_filters d_f
+         WHERE
+            d_f.filter IS NOT NULL
+            AND d_f.filter != ''
+            AND d_f.filter != '{}'
+            AND JSON_UNQUOTE(
+               JSON_EXTRACT(d_f.filter, '$.group_requester')
+            ) != 'null'
+      )
+      OR g.id IN (
+         SELECT
+            CAST(
+               JSON_UNQUOTE(
+                  JSON_EXTRACT(d_f.filter, '$.group_requester')
+               ) AS UNSIGNED
+            )
+         FROM
+            glpi_dashboards_filters d_f
+         WHERE
+            d_f.filter IS NOT NULL
+            AND d_f.filter != ''
+            AND d_f.filter != '{}'
+      )
+   )
+ORDER BY
+   iav.is_active,
+   iav.is_uptodate,
+   iav.date_expiration

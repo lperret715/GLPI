@@ -1,0 +1,100 @@
+SELECT
+   Ordinateur,
+   Avertissements,
+   Pourcentage_batterie,
+   Capacité_Batterie,
+   Capacité_réelle_Batterie,
+   Groupe,
+   Dernières_infos
+FROM
+   (
+      SELECT
+         c.name as Ordinateur,
+         CASE WHEN i_db.real_capacity = 0 THEN
+            'Pas d''information'
+         WHEN db.capacity = 0 THEN
+            'Pas d''information'
+         WHEN (i_db.real_capacity / db.capacity) * 100 <= 50 THEN
+            '⚠️⚠️ Batterie endommagée ⚠️⚠️'
+         WHEN (i_db.real_capacity / db.capacity)* 100 <= 80 THEN
+            'Batterie usée'
+         ELSE
+            NULL
+         END as Avertissements,
+         CASE WHEN i_db.real_capacity = 0 THEN
+            'Pas d''information'
+         WHEN db.capacity = 0 THEN
+            'Pas d''information'
+         ELSE
+            (i_db.real_capacity / db.capacity) * 100
+         END as Pourcentage_batterie,
+         CASE WHEN db.capacity != 0 THEN
+            db.capacity
+         ELSE
+            'Pas d''information'
+         END as Capacité_Batterie,
+         CASE WHEN i_db.real_capacity != 0 THEN
+            i_db.real_capacity
+         ELSE
+            'Pas d''information'
+         END as Capacité_réelle_Batterie,
+         g.name as Groupe,
+         c.last_inventory_update as Dernières_infos,
+         ROW_NUMBER() OVER (
+            PARTITION BY
+               c.id
+            ORDER BY
+               CASE WHEN i_db.real_capacity != 0
+               AND db.capacity = 0 THEN
+                  0
+               ELSE
+                  1
+               END,
+               (
+                  i_db.real_capacity / NULLIF(db.capacity, 0)
+               ) * 100 DESC
+         ) AS r_n
+      FROM
+         glpi_computers c
+         LEFT JOIN glpi_groups_items g_i on c.id = g_i.items_id
+         LEFT JOIN glpi_groups g on g_i.groups_id = g.id
+         LEFT JOIN glpi_items_devicebatteries i_db on i_db.items_id = c.id
+         LEFT JOIN glpi_devicebatteries db on db.id = i_db.devicebatteries_id
+      WHERE
+         c.is_deleted = 0
+         AND c.is_template = 0
+         AND (
+            NOT EXISTS (
+               SELECT
+                  1
+               FROM
+                  glpi_dashboards_filters d_f
+               WHERE
+                  d_f.filter IS NOT NULL
+                  AND d_f.filter != ''
+                  AND d_f.filter != '{}'
+                  AND JSON_UNQUOTE(
+                     JSON_EXTRACT(d_f.filter, '$.group_requester')
+                  ) != 'null'
+            )
+            OR g.id IN (
+               SELECT
+                  CAST(
+                     JSON_UNQUOTE(
+                        JSON_EXTRACT(d_f.filter, '$.group_requester')
+                     ) AS UNSIGNED
+                  )
+               FROM
+                  glpi_dashboards_filters d_f
+               WHERE
+                  d_f.filter IS NOT NULL
+                  AND d_f.filter != ''
+                  AND d_f.filter != '{}'
+            )
+         )
+   ) s
+WHERE r_n = 1
+ORDER BY
+   CASE WHEN Pourcentage_batterie = 'Pas d''infrmation' OR Pourcentage_batterie IS NULL THEN 1 ELSE 0 END,
+   Pourcentage_batterie,
+   Capacité_Batterie

@@ -1,0 +1,63 @@
+SELECT
+   COUNT(
+      DISTINCT CASE WHEN db.capacity != 0
+      AND i_db.real_capacity != 0
+      AND (i_db.real_capacity / db.capacity) * 100 <= 50 THEN
+         c.id
+      END
+   ) AS Endommagée,
+   COUNT(
+      DISTINCT CASE WHEN (i_db.real_capacity / db.capacity) * 100 >= 50
+      AND (i_db.real_capacity / db.capacity) * 100 <= 80 THEN
+         c.id
+      END
+   ) AS Usée,
+   COUNT(
+      DISTINCT CASE WHEN (i_db.real_capacity / db.capacity) * 100 >= 80 THEN
+         c.id
+      END
+   ) AS Fonctionnelle,
+   COUNT(
+      DISTINCT CASE WHEN db.capacity = 0
+      OR i_db.real_capacity = 0 THEN
+         c.id
+      END
+   ) AS 'Pas d''information'
+FROM
+   glpi_computers c
+   LEFT JOIN glpi_items_devicebatteries i_db ON i_db.items_id = c.id
+   LEFT JOIN glpi_devicebatteries db ON i_db.devicebatteries_id = db.id
+   LEFT JOIN glpi_groups_items g_i ON g_i.items_id = c.id
+   LEFT JOIN glpi_groups g ON g_i.groups_id = g.id
+WHERE
+   c.is_deleted = 0
+   AND c.is_template = 0
+   AND (
+      NOT EXISTS (
+         SELECT
+            1
+         FROM
+            glpi_dashboards_filters df
+         WHERE
+            df.filter IS NOT NULL
+            AND df.filter != ''
+            AND df.filter != '{}'
+            AND JSON_UNQUOTE(
+               JSON_EXTRACT(df.filter, '$.group_requester')
+            ) != 'null'
+      )
+      OR g.id IN (
+         SELECT
+            CAST(
+               JSON_UNQUOTE(
+                  JSON_EXTRACT(df.filter, '$.group_requester')
+               ) AS UNSIGNED
+            )
+         FROM
+            glpi_dashboards_filters df
+         WHERE
+            df.filter IS NOT NULL
+            AND df.filter != ''
+            AND df.filter != '{}'
+      )
+   ) 

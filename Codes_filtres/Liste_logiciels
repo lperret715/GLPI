@@ -1,0 +1,52 @@
+SELECT
+   DISTINCT i_sv.date_install as 'Installation',
+   u.name as Utilisateur,
+   c.name AS Poste,
+   s.name as Logiciel,
+   sv.name as Version
+FROM
+   glpi_computers c
+   LEFT JOIN glpi_groups_items g_i ON g_i.items_id = c.id
+   LEFT JOIN glpi_groups g ON g_i.groups_id = g.id
+   LEFT JOIN glpi_groups_users g_u ON g_u.groups_id = g.id
+   LEFT JOIN glpi_users u on u.id = g_u.users_id
+   LEFT JOIN glpi_items_softwareversions i_sv ON i_sv.items_id = c.id
+   LEFT JOIN glpi_softwareversions sv ON i_sv.softwareversions_id = sv.id
+   LEFT JOIN glpi_softwares s ON s.id = sv.softwares_id
+WHERE
+   c.is_deleted = 0
+   AND c.is_template = 0
+   AND i_sv.date_install >= DATE_SUB(CURRENT_DATE, INTERVAL 14 DAY)
+   AND (
+      NOT EXISTS (
+         SELECT
+            1
+         FROM
+            glpi_dashboards_filters d_f
+         WHERE
+            d_f.filter IS NOT NULL
+            AND d_f.filter != ''
+            AND d_f.filter != '{}'
+            AND JSON_UNQUOTE(
+               JSON_EXTRACT(d_f.filter, '$.group_requester')
+            ) != 'null'
+      )
+      OR g.id IN (
+         SELECT
+            CAST(
+               JSON_UNQUOTE(
+                  JSON_EXTRACT(d_f.filter, '$.group_requester')
+               ) AS UNSIGNED
+            )
+         FROM
+            glpi_dashboards_filters d_f
+         WHERE
+            d_f.filter IS NOT NULL
+            AND d_f.filter != ''
+            AND d_f.filter != '{}'
+      )
+   )
+ORDER BY
+   i_sv.date_install DESC,
+   c.name,
+   sv.name;

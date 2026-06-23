@@ -1,0 +1,53 @@
+WITH
+   disk_usage AS (
+      SELECT
+         items_id,
+         SUM(freesize) / SUM(totalsize)* 100 AS percentage_used
+      FROM
+         glpi_items_disks
+      GROUP BY
+         items_id
+   )
+SELECT
+   COUNT(
+      DISTINCT CASE WHEN d_u.percentage_used <= 10 THEN
+         c.name
+      END
+   ) AS 'Libérer de l''espace'
+FROM
+   glpi_computers c
+   LEFT JOIN glpi_groups_items g_i ON g_i.items_id = c.id
+   LEFT JOIN glpi_groups g ON g_i.groups_id = g.id
+   LEFT JOIN disk_usage d_u ON d_u.items_id = c.id
+WHERE
+   c.is_deleted = 0
+   AND c.is_template = 0
+   AND (
+      NOT EXISTS (
+         SELECT
+            1
+         FROM
+            glpi_dashboards_filters df
+         WHERE
+            df.filter IS NOT NULL
+            AND df.filter != ''
+            AND df.filter != '{}'
+            AND JSON_UNQUOTE(
+               JSON_EXTRACT(df.filter, '$.group_requester')
+            ) != 'null'
+      )
+      OR g.id IN (
+         SELECT
+            CAST(
+               JSON_UNQUOTE(
+                  JSON_EXTRACT(df.filter, '$.group_requester')
+               ) AS UNSIGNED
+            )
+         FROM
+            glpi_dashboards_filters df
+         WHERE
+            df.filter IS NOT NULL
+            AND df.filter != ''
+            AND df.filter != '{}'
+      )
+   ) 

@@ -1,0 +1,82 @@
+SELECT
+   SUM(
+      CASE WHEN selection.Battery <= 50 THEN
+         1
+      ELSE
+         0
+      END
+   ) AS Batterie,
+   SUM(selection.antivirus) AS AV,
+   SUM(selection.Disques) AS Stockage
+FROM
+   (
+      SELECT
+         c.id,
+         MIN(
+            CASE WHEN i_db.real_capacity > 0
+            AND db.capacity > 0 THEN
+               i_db.real_capacity / db.capacity * 100
+            ELSE
+               NULL
+            END
+         ) AS Battery,
+         CASE WHEN (
+            MIN(iav.is_active) = 0
+            OR MIN(iav.is_uptodate) = 0
+            OR (
+               MIN(iav.date_expiration) IS NOT NULL
+               AND MIN(iav.date_expiration) <= CURRENT_DATE
+            )
+         ) THEN
+            1
+         ELSE
+            0
+         END AS antivirus,
+         CASE WHEN SUM(i_d.freesize) / SUM(i_d.totalsize) * 100 <= 20 THEN
+            1
+         ELSE
+            0
+         END AS Disques
+      FROM
+         glpi_computers c
+         LEFT JOIN glpi_groups_items g_i ON g_i.items_id = c.id
+         LEFT JOIN glpi_groups g ON g_i.groups_id = g.id
+         LEFT JOIN glpi_items_devicebatteries i_db ON i_db.items_id = c.id
+         LEFT JOIN glpi_devicebatteries db ON i_db.devicebatteries_id = db.id
+         LEFT JOIN glpi_itemantiviruses iav ON iav.items_id = c.id
+         LEFT JOIN glpi_items_disks i_d ON i_d.items_id = c.id
+      WHERE
+         c.is_deleted = 0
+         AND c.is_template = 0
+         AND (
+            NOT EXISTS (
+               SELECT
+                  1
+               FROM
+                  glpi_dashboards_filters d_f
+               WHERE
+                  d_f.filter IS NOT NULL
+                  AND d_f.filter != ''
+                  AND d_f.filter != '{}'
+                  AND JSON_UNQUOTE(
+                     JSON_EXTRACT(d_f.filter, '$.group_requester')
+                  ) != 'null'
+            )
+            OR g.id IN (
+               SELECT
+                  CAST(
+                     JSON_UNQUOTE(
+                        JSON_EXTRACT(d_f.filter, '$.group_requester')
+                     ) AS UNSIGNED
+                  )
+               FROM
+                  glpi_dashboards_filters d_f
+               WHERE
+                  d_f.filter IS NOT NULL
+                  AND d_f.filter != ''
+                  AND d_f.filter != '{}'
+            )
+         )
+      GROUP BY
+         c.name
+   ) selection
